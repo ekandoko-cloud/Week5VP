@@ -44,7 +44,7 @@ private fun formatRupiah(price: Int): String {
 }
 
 @Composable
-fun SpendingScreen(viewModel: ExpenseViewModel = viewModel()) {
+fun ExpenseScreen(viewModel: ExpenseViewModel = viewModel()) {
     val spending by viewModel.spending.collectAsState()
     val inputName by viewModel.inputName.collectAsState()
     val inputPrice by viewModel.inputPrice.collectAsState()
@@ -190,6 +190,6 @@ fun SpendingScreen(viewModel: ExpenseViewModel = viewModel()) {
 @SuppressLint("ViewModelConstructorInComposable")
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun SpendingScreenPreview() {
-    SpendingScreen(viewModel = ExpenseViewModel())
+fun ExpenseScreenPreview() {
+    ExpenseScreen(viewModel = ExpenseViewModel())
 }
