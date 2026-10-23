@@ -1,11 +1,12 @@
-package com.example.week5vp.Soal2.viewmodel
+package com.example.practicerabu.q2.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.week5vp.Soal2.model.AnswerHistory
 import com.example.week5vp.Soal2.model.Question
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class QuizViewModel : ViewModel() {
     private val questionBank = listOf(
@@ -36,41 +37,55 @@ class QuizViewModel : ViewModel() {
         )
     )
     val maxQuestions = 5
-    var countInput by mutableStateOf("")
-    var listQuiz by mutableStateOf<List<Question>>(emptyList())
-    var answers by mutableStateOf<List<AnswerHistory>>(emptyList())
-    var selectedAnswer by mutableStateOf<String?>(null)
-
-    val countError: String?
-        get() {
-            if (countInput.isBlank()) return null
-            val number = countInput.toIntOrNull() ?: return "Enter a valid number"
-            return when {
-                number > maxQuestions -> "Maximum is $maxQuestions questions"
-                number < 1 -> "Minimum is 1 question"
-                else -> null
-            }
+    private val _countInput = MutableStateFlow("")
+    val countInput: StateFlow<String> = _countInput.asStateFlow()
+    private val _quizQuestions = MutableStateFlow<List<Question>>(emptyList())
+    val quizQuestions: StateFlow<List<Question>> = _quizQuestions.asStateFlow()
+    private val _answers = MutableStateFlow<List<AnswerHistory>>(emptyList())
+    val answers: StateFlow<List<AnswerHistory>> = _answers.asStateFlow()
+    private val _selectedAnswer = MutableStateFlow<String?>(null)
+    val selectedAnswer: StateFlow<String?> = _selectedAnswer.asStateFlow()
+    fun countError(): String? {
+        val text = _countInput.value
+        if (text.isBlank()) return null
+        val number = text.toIntOrNull() ?: return "Enter a valid number"
+        return when {
+            number > maxQuestions -> "Maximum is $maxQuestions questions"
+            number < 1 -> "Minimum is 1 question"
+            else -> null
         }
+    }
+    fun canStart(): Boolean {
+        return _countInput.value.isNotBlank() && countError() == null
+    }
 
-    val canStart: Boolean
-        get() = countInput.isNotBlank() && countError == null
+    fun score(): Int {
+        return _answers.value.count { it.isCorrect }
+    }
 
-    val score: Int
-        get() = answers.count { it.isCorrect }
+    fun onCountChange(text: String) {
+        _countInput.value = text.filter { it.isDigit() }
+    }
+
+    fun selectAnswer(answer: String) {
+        _selectedAnswer.value = answer
+    }
 
     fun startQuiz() {
-        listQuiz = questionBank.shuffled().take(countInput.toInt())
+        if (!canStart()) return
+        _quizQuestions.value = questionBank.shuffled().take(_countInput.value.toInt())
     }
 
     fun nextQuestion() {
-        val selected = selectedAnswer ?: return
-        answers = answers + AnswerHistory(listQuiz[answers.size], selected)
-        selectedAnswer = null
+        val selected = _selectedAnswer.value ?: return
+        _answers.update { it + AnswerHistory(_quizQuestions.value[it.size], selected) }
+        _selectedAnswer.value = null
     }
 
     fun restartQuiz() {
-        countInput = ""
-        listQuiz = emptyList()
-        answers = emptyList()
+        _countInput.value = ""
+        _quizQuestions.value = emptyList()
+        _answers.value = emptyList()
+        _selectedAnswer.value = null
     }
 }

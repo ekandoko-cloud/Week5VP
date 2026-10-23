@@ -1,43 +1,47 @@
 package com.example.week5vp.Soal2.ui.screen
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.week5vp.Soal2.viewmodel.QuizViewModel
+import com.example.practicerabu.q2.viewmodel.QuizViewModel
 
 @Composable
 fun StateScreen(
     modifier: Modifier = Modifier,
     viewModel: QuizViewModel = viewModel()
 ) {
-    val total = viewModel.listQuiz.size
-    val done = viewModel.answers.size
+    val countInput by viewModel.countInput.collectAsState()
+    val questions by viewModel.quizQuestions.collectAsState()
+    val answers by viewModel.answers.collectAsState()
+    val selectedAnswer by viewModel.selectedAnswer.collectAsState()
 
-    if (total == 0) {
+    if (questions.isEmpty()) {
         StartScreen(
             maxQuestions = viewModel.maxQuestions,
-            countInput = viewModel.countInput,
-            errorMessage = viewModel.countError,
-            canStart = viewModel.canStart,
-            onCountChange = { viewModel.countInput = it },
+            countInput = countInput,
+            errorMessage = viewModel.countError(),
+            canStart = viewModel.canStart(),
+            onCountChange = viewModel::onCountChange,
             onStart = viewModel::startQuiz,
             modifier = modifier
         )
-    } else if (done == total) {
+    } else if (answers.size == questions.size) {
         ScoreScreen(
-            score = viewModel.score,
-            total = total,
-            answers = viewModel.answers,
+            score = viewModel.score(),
+            total = questions.size,
+            answers = answers,
             onRestart = viewModel::restartQuiz,
             modifier = modifier
         )
     } else {
         QuizScreen(
-            questionNumber = done + 1,
-            question = viewModel.listQuiz[done],
-            selectedAnswer = viewModel.selectedAnswer,
-            onSelect = { viewModel.selectedAnswer = it },
+            questionNumber = answers.size + 1,
+            question = questions[answers.size],
+            selectedAnswer = selectedAnswer,
+            onSelect = viewModel::selectAnswer,
             onNext = viewModel::nextQuestion,
             modifier = modifier
         )
@@ -47,5 +51,5 @@ fun StateScreen(
 @Composable
 @Preview(showBackground = true, showSystemUi = true)
 fun StateScreenPreview() {
-    StateScreen(modifier = Modifier)
+    StateScreen()
 }

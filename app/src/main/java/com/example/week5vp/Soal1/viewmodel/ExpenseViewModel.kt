@@ -1,60 +1,71 @@
 package com.example.week5vp.Soal1.viewmodel
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.example.week5vp.Soal1.model.Expense
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class ExpenseViewModel : ViewModel() {
+    private val _spending = MutableStateFlow<List<Expense>>(emptyList())
+    val spending: StateFlow<List<Expense>> = _spending.asStateFlow()
+    private val _inputName = MutableStateFlow("")
+    val inputName: StateFlow<String> = _inputName.asStateFlow()
+    private val _inputPrice = MutableStateFlow("")
+    val inputPrice: StateFlow<String> = _inputPrice.asStateFlow()
+    private val _errorName = MutableStateFlow<String?>(null)
+    val errorName: StateFlow<String?> = _errorName.asStateFlow()
+    private val _errorPrice = MutableStateFlow<String?>(null)
+    val errorPrice: StateFlow<String?> = _errorPrice.asStateFlow()
+    private var counter = 1
 
-    // State
-    var spending by mutableStateOf<List<Expense>>(emptyList())
-    var titleInput by mutableStateOf("")
-    var priceInput by mutableStateOf("")
-    var titleError by mutableStateOf<String?>(null)
-    var priceError by mutableStateOf<String?>(null)
+    fun grandTotal(): Int {
+        return _spending.value.sumOf { it.price }
+    }
 
-    private var idCounter = 1
+    fun onNameChange(text: String) {
+        _inputName.value = text
+        _errorName.value = null
+    }
 
-    // Otomatis ikut berubah kalau daftar spendings berubah (tambah / hapus / edit)
-    val grandTotal: Int
-        get() = spending.sumOf { it.price }
+    fun onPriceChange(text: String) {
+        _inputPrice.value = text.filter { it.isDigit() }
+        _errorPrice.value = null
+    }
 
     fun addSpending() {
-        val parsedPrice = priceInput.toIntOrNull()
+        val newPrice = _inputPrice.value.toIntOrNull()
 
-        if (titleInput.isBlank()) {
-            titleError = "Name must not be empty"
+        if (_inputName.value.isBlank()) {
+            _errorName.value = "Name must not be empty"
             return
         }
-        if (parsedPrice == null || parsedPrice <= 0) {
-            priceError = "Amount must be greater than 0"
+        if (newPrice == null || newPrice <= 0) {
+            _errorPrice.value = "Amount must be greater than 0"
             return
         }
-
-        spending = spending + Expense(idCounter, titleInput.trim(), parsedPrice)
-        idCounter += 1
-
-        // Kosongkan input dan error
-        titleInput = ""
-        priceInput = ""
-        titleError = null
-        priceError = null
+        _spending.update { it + Expense(counter, _inputName.value.trim(), newPrice) }
+        counter += 1
+        _inputName.value = ""
+        _inputPrice.value = ""
+        _errorName.value = null
+        _errorPrice.value = null
     }
 
     fun removeSpending(id: Int) {
-        spending = spending.filter { it.id != id }
+        _spending.update { list -> list.filter { it.id != id } }
     }
 
-    // Return true kalau berhasil, false kalau harga tidak valid
     fun changePrice(id: Int, newValue: String): Boolean {
-        val parsedPrice = newValue.toIntOrNull()
-        if (parsedPrice == null || parsedPrice <= 0) {
+        val newPrice = newValue.toIntOrNull()
+        if (newPrice == null || newPrice <= 0) {
             return false
         }
-        spending = spending.map {
-            if (it.id == id) it.copy(price = parsedPrice) else it
+        _spending.update { list ->
+            list.map {
+                if (it.id == id) it.copy(price = newPrice) else it
+            }
         }
         return true
     }
